@@ -1,15 +1,18 @@
-#!/bin/env python3
 import pyglet
 
-window = pyglet.window.Window(visible=False)
-window.set_size(694,465)
-window.set_visible()
+window = pyglet.window.Window(width=762, height=321)
 
-image = pyglet.resource.image('gameofur.png')
+background_image = pyglet.resource.image('board.png')
+white_image = pyglet.resource.image('white.png')
+white = pyglet.sprite.Sprite(white_image, x=50, y=50)
+black_image = pyglet.resource.image('black.png')
+black = pyglet.sprite.Sprite(black_image, x=50, y=150)
 
 @window.event
 def on_draw():
     window.clear()
-    image.blit(0,0)
+    background_image.blit(0,0)
+    white.draw()
+    black.draw()
 
 pyglet.app.run()

@@ -71,3 +71,4 @@ def test_Board():
     assert diceCheck >= 0 and diceCheck < 5
     assert not game.HasWon(square.Color.empty)
     assert game.GetSquare(25) == None
+    game.SaveGame("savefile.txt")

@@ -5,6 +5,7 @@ class Board:
     def __init__(self):
         self.turn = square.Color.white
         self.dice = 0
+        self.actionList = []
         square5 = square.NormalSquare(square.Color.empty, False)
         square6 = square.NormalSquare(square.Color.empty, False)
         square7 = square.NormalSquare(square.Color.empty, False)
@@ -71,6 +72,7 @@ class Board:
 
     def CanMove(self):
         if self.dice == 0:
+            self.actionList.append((str(self.turn), self.dice, 0))
             self.NextTurn()
             return False
 
@@ -84,6 +86,7 @@ class Board:
                 if list[i].CanMove(list[i + self.dice]):
                     return True
 
+        self.actionList.append((str(self.turn), self.dice, 100))
         self.NextTurn()
         return False
 
@@ -117,7 +120,10 @@ class Board:
                 self.blacklist[0].IncCount()
 
         if not selectedSquare.Move(nextSquare):
+            self.actionList.append((str(self.turn), self.dice, position))
             self.NextTurn()
+        else:
+            self.actionList.append((str(self.turn), self.dice, position))
 
         return True
 
@@ -141,3 +147,9 @@ class Board:
 
     def GetTurn(self):
         return self.turn
+
+    def SaveGame(self, filename):
+        file = open(filename, "w")
+        for action in self.actionList:
+            file.write(action)
+        file.close()

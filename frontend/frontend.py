@@ -1,5 +1,12 @@
+#!/bin/env python3
 import pyglet
-from GameOfUr.backend import board, square
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
+
+import board
+import square
 
 def grid2square(x, y, offsetX, offsetY):
     i = -1

@@ -1,5 +1,10 @@
 import random
-from GameOfUr.backend import square
+import os
+import sys
+
+sys.path.append(os.path.dirname(__file__))
+
+import square
 
 class Board:
     def __init__(self):
@@ -151,5 +156,5 @@ class Board:
     def SaveGame(self, filename):
         file = open(filename, "w")
         for action in self.actionList:
-            file.write(action)
+            file.write(action[0] + '-' +  str(action[1]) + '-' +  str(action[2]) + '\n')
         file.close()

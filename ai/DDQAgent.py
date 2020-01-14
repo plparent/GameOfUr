@@ -96,7 +96,7 @@ class DDQAgent(Utilities):
 
         if self.weights_file:
             self.build_model()
-            self.model = model.load_weights(self.weights_file)
+            self.model = self.model.load_weights(self.weights_file)
         
         super().__init__()
 

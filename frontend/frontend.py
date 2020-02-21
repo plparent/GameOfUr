@@ -8,6 +8,26 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
 import board
 import square
 
+class button:
+    def __init__(self, x, y, fct, img):
+        self.x = x
+        self.y = y
+        self.width = img.width
+        self.height = img.height
+        self.fct = fct
+        self.img = img
+
+    def click(self, x, y):
+        if self.x <= x and x <= self.x + self.width and self.y <= y and y <= self.y + self.height:
+            self.fct()
+            return True
+        else:
+            return False
+
+    def render(self):
+        pyglet.sprite.Sprite(self.img, x=self.x, y=self.y).draw()
+        
+
 def grid2square(x, y, offsetX, offsetY):
     i = -1
     j = -1

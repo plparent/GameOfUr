@@ -8,9 +8,13 @@ import square
 
 class Board:
     def __init__(self):
-        self.turn = square.Color.white
         self.dice = 0
         self.actionList = []
+        self.actionPointer = -1
+        self.Reset()
+        
+    def Reset(self):
+        self.turn = square.Color.white
         square5 = square.NormalSquare(square.Color.empty, False)
         square6 = square.NormalSquare(square.Color.empty, False)
         square7 = square.NormalSquare(square.Color.empty, False)
@@ -53,6 +57,7 @@ class Board:
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, True),
                           square.EndSquare(7)]
+
 
     def GetPosition(self, position):
         switch = [4,3,2,1,0,15,14,13,5,6,7,8,9,10,11,12,4,3,2,1,0,15,14,13]
@@ -125,10 +130,12 @@ class Board:
                 self.blacklist[0].IncCount()
 
         if not selectedSquare.Move(nextSquare):
-            self.actionList.append((str(self.turn), self.dice, position))
+            if self.actionPointer == -1:
+                self.actionList.append((str(self.turn), self.dice, position))
             self.NextTurn()
         else:
-            self.actionList.append((str(self.turn), self.dice, position))
+            if self.actionPointer == -1:
+                self.actionList.append((str(self.turn), self.dice, position))
 
         return True
 
@@ -158,3 +165,41 @@ class Board:
         for action in self.actionList:
             file.write(action[0] + '-' +  str(action[1]) + '-' +  str(action[2]) + '\n')
         file.close()
+
+    def LoadGame(self, filename):
+        file = open(filename, "r")
+        self.actionList = []
+        line = file.readline()
+        while line:
+            items = line.split('-')
+            self.actionList.append((items[0], int(items[1]), int(items[2])))
+            line = file.readline()
+        file.close()
+        self.actionPointer = 0
+
+    def NextMove(self):
+        if self.actionPointer == 0:
+            self.Reset()
+            self.ThrowDice(self.actionList[0][1])
+
+        if self.actionPointer >= 0 and self.actionPointer <= len(self.actionList):
+            action = self.actionList[self.actionPointer][2]
+            if action != 0 and action != 100:
+                self.Move(action)
+            else:
+                self.NextTurn()
+            if self.actionPointer + 1 < len(self.actionList):
+                self.ThrowDice(self.actionList[self.actionPointer + 1][1])
+                self.actionPointer += 1
+
+    def PreviousMove(self):
+        pointer = self.actionPointer - 1
+        
+        if pointer > 0:
+            self.actionPointer = 0
+            while self.actionPointer < pointer:
+                self.NextMove()
+        elif pointer == 0:
+            self.actionPointer = 0
+            self.Reset()
+            self.ThrowDice(self.actionList[0][1])

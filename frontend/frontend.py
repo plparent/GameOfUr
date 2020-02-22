@@ -1,15 +1,18 @@
 #!/bin/env python3
 import pyglet
+import time
 import os
 import sys
+import easygui
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
 
 import board
 import square
 
-class button:
-    def __init__(self, x, y, fct, img):
+class Button:
+    def __init__(self, name, x, y, fct, img):
+        self.name = name
         self.x = x
         self.y = y
         self.width = img.width
@@ -26,7 +29,12 @@ class button:
 
     def render(self):
         pyglet.sprite.Sprite(self.img, x=self.x, y=self.y).draw()
-        
+        pyglet.text.Label(self.name,
+                          font_name='Times New Roman',
+                          font_size=16,
+                          color=(0,0,0,255),
+                          x=self.x + 30, y=self.y + 18).draw()
+            
 
 def grid2square(x, y, offsetX, offsetY):
     i = -1
@@ -72,7 +80,11 @@ def square2grid(pos, offsetX, offsetY):
     else:
         return (-1,-1)
 
+
+
 game = board.Board()
+button_list = []
+
 
 window = pyglet.window.Window(width=1024, height=600)
 
@@ -80,12 +92,35 @@ background_image = pyglet.resource.image('background.png')
 board_image = pyglet.resource.image('board.png')
 white_image = pyglet.resource.image('white.png')
 black_image = pyglet.resource.image('black.png')
+button_image = pyglet.resource.image('button.png')
+button_image.width = 175
+button_image.height = 50
 
 background = pyglet.sprite.Sprite(board_image, y=150)
 
-dice = game.ThrowDice(-1)
+def nextmove():
+    game.NextMove()
+
+def previousmove():
+    game.PreviousMove()
+
+def savegame():
+    name = "GameOfUrSave-" + str(time.time())
+    game.SaveGame(name)
+    print("Saved: ", name)
+
+def loadgame():
+    name = easygui.fileopenbox()
+    game.LoadGame(name)
+    button_list.append(Button("Next Move", 600, 25, nextmove, button_image))
+    button_list.append(Button("Previous Move", 200, 25, previousmove, button_image))
+    print("Loaded: ", name)
+
+button_list.append(Button("Save Replay", 800, 500, savegame, button_image))
+button_list.append(Button("Load Replay", 800, 400, loadgame, button_image))
 
 
+game.ThrowDice(-1)
 hasWon = square.Color.empty
 
 def draw_count(num, color, offsetX, offsetY):
@@ -98,18 +133,24 @@ def draw_count(num, color, offsetX, offsetY):
 @window.event
 def on_mouse_press(x,y,button,modifiers):
     if button == pyglet.window.mouse.LEFT:
-        global dice
-        if game.CanMove():
-            if game.Move(grid2square(x, y, 0, 150)):
-                dice = game.ThrowDice(-1)
+        is_button = False
+        for b in button_list:
+            is_button = b.click(x,y)
+            if is_button:
+                break
+        
+        if not is_button:
+            if game.CanMove():
+                if game.Move(grid2square(x, y, 0, 150)):
+                    game.ThrowDice(-1)
 
-                global hasWon
-                if game.HasWon(square.Color.white):
-                    hasWon = square.Color.white
-                elif game.HasWon(square.Color.black):
-                    hasWon = square.Color.black
-        else:
-            dice = game.ThrowDice(-1)
+                    global hasWon
+                    if game.HasWon(square.Color.white):
+                        hasWon = square.Color.white
+                    elif game.HasWon(square.Color.black):
+                        hasWon = square.Color.black
+            else:
+                game.ThrowDice(-1)
         
 
 @window.event
@@ -132,7 +173,7 @@ def on_draw():
     draw_count(game.GetSquare(5).GetCount(), square.Color.black, 500, 470)
     draw_count(game.GetSquare(21).GetCount(), square.Color.white, 500, 100)
 
-    pyglet.text.Label('Dice: ' + str(dice),
+    pyglet.text.Label('Dice: ' + str(game.dice),
                       font_name='Times New Roman',
                       font_size=36,
                       color=(0,0,0,255),
@@ -150,6 +191,9 @@ def on_draw():
                           font_size=36,
                           color=(0,0,0,255),
                           x=400, y=50).draw()
+
+    for button in button_list:
+        button.render()
 
 
 pyglet.app.run()

@@ -11,7 +11,7 @@ import numpy as np
 class Env():
     def __init__(self):
         self.game = board.Board()
-        self.action_space = spaces.Discrete(24)
+        self.action_space = spaces.Discrete(7)
         self.observation_space = spaces.Box(low=0, high=7, shape=(25,), dtype=np.int8)
         
         self.game.ThrowDice(-1)
@@ -25,7 +25,7 @@ class Env():
 
     def step(self, action):
         if not self.game.CanMove():
-            return (self.get_observation(), 0, False, {})
+            return (self.get_observation(), 5, False, {})
         
         if self.game.Move(action):
             if self.game.HasWon(square.Color.white) or self.game.HasWon(square.Color.black):
@@ -43,11 +43,30 @@ class Env():
             elif item.GetColor() == square.Color.empty:
                 obs.append(0)
             elif item.GetColor() == square.Color.white:
-                obs.append(1)
+                if self.game.turn == square.Color.white:
+                    obs.append(1)
+                else:
+                    obs.append(2)
             elif item.GetColor() == square.Color.black:
-                obs.append(2)
+                if self.game.turn == square.Color.black:
+                    obs.append(2)
+                else:
+                    obs.append(1)
 
-        return np.array(obs.append(self.game.ThrowDice(-1)))
+        if self.game.turn == square.Color.black:
+            tmp = obs[0:8]
+            obs[0:8] = obs[16:24]
+            obs[16:24] = tmp
+
+        obs.append(self.game.dice)
+        return np.array(obs)
 
     def close(self):
         pass
+
+env = Env()
+print(env.get_observation())
+env.step(20)
+print(env.get_observation())
+env.step(4)
+print(env.get_observation())

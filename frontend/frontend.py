@@ -195,5 +195,5 @@ def on_draw():
     for button in button_list:
         button.render()
 
-
-pyglet.app.run()
+if __name__ == "__main__":
+    pyglet.app.run()

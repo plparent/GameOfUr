@@ -1,6 +1,13 @@
 import numpy as np
 import copy as cp
 import random
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
+
+import board
+import square
 
 c_puct = 3
 tau = 1
@@ -154,3 +161,7 @@ class Node:
             
     def is_leaf(self):
         return len(self.children) == 0
+
+b = board.Board()
+b.ThrowDice(-1)
+test = Node(b, None)

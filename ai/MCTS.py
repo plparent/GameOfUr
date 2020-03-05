@@ -10,8 +10,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
 import board
 import square
 
+k = 100
+i = 400
+j = 1000
 c_puct = 3
-tau = 1
+max_tau = 30
 action_space = 24
 model = Model.generate_model()
 
@@ -27,7 +30,7 @@ class Node:
         self.policy = np.zeros(action_space)
 
     def search(self):
-        if self.is_leaf():
+        if len(self.children) == 0:
             self.expand()
         else:
             self.select().search()
@@ -63,7 +66,7 @@ class Node:
             self.parent.Q[self.move] = self.parent.W[self.move] / self.parent.N[self.move]
             self.parent.backup(value)
 
-    def play(self):
+    def play(self, count, tau = 1):
         arr = []
         if self.state.HasWon(square.Color.white):
             self.parse(arr, 1)
@@ -77,15 +80,22 @@ class Node:
             action = np.argmax(self.policy)
             dice = random.randint(0,1) + random.randint(0,1) + random.randint(0,1) + random.randint(0,1)
             if (action, dice) in self.children:
-                return self.children[(action, dice)].play()
+                if count == 0:
+                    return self.children[(action, dice)].play(0.00001, count)
+                else:
+                    count -= 1
+                    return self.children[(action, dice)].play(tau, count)
             
             raise Exception("Failed Play")
 
     def parse(self, arr, value):
-        if self.state.turn == square.Color.white:
+        if self.state.GetTurn() == square.Color.white:
             arr.append((self.state_convert(), self.policy, value))
         else:
             arr.append((self.state_convert(), self.policy, -1 * value))
+
+        if self.parent != None:
+            self.parent.parse(arr, value)
 
     def state_convert(self):
         def encode_bin(value):
@@ -130,7 +140,7 @@ class Node:
         last[4] = encode_bin(self.state.dice)
 
         turn = [0, 0, 0]
-        if self.state.turn == square.Color.black:
+        if self.state.GetTurn() == square.Color.black:
             turn = [1, 1, 1]
 
         for i in range(5,8):
@@ -144,7 +154,7 @@ class Node:
             ret[0] = 1
             return ret
 
-        if self.state.turn == square.Color.white:
+        if self.state.GetTurn() == square.Color.white:
             list = self.state.whitelist
             switch = [20,19,18,17,16,8,9,10,11,12,13,14,15,23,22,21]
         else:
@@ -152,7 +162,7 @@ class Node:
             switch = [4,3,2,1,0,8,9,10,11,12,13,14,15,5,6,7]
 
         for i in range(16 - self.state.dice):
-            if list[i].GetColor() == self.state.turn:
+            if list[i].GetColor() == self.state.GetTurn():
                 if list[i].CanMove(list[i + self.state.dice]):
                     ret[switch[i]] = 1
 
@@ -160,10 +170,26 @@ class Node:
             ret[0] = 1
 
         return ret
-            
-    def is_leaf(self):
-        return len(self.children) == 0
 
-b = board.Board()
-b.ThrowDice(-1)
-test = Node(b, None)
+def train():
+    for k_prime in range(k):
+        game = board.Board()
+        tree = Node(game, None)
+        for _ in range(i):
+            tree.search()
+        
+        dataset = []
+        for _ in range(j):
+            dataset += tree.play(max_tau)    
+
+        trainingset = np.random.choice(dataset, 200)
+
+        inputs = [i[0] for i in trainingset]
+        targets = [[i[1], i[2]] for i in trainingset]
+
+        model.fit(x=inputs, y=targets)
+
+        if k_prime % 10 == 0:
+            model.save_weights("savetime-" + k_prime + ".h5")
+
+train()

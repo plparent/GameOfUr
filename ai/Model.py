@@ -48,6 +48,3 @@ def generate_model():
 
     return model
 
-test = generate_model()
-    
-    

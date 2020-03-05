@@ -78,3 +78,19 @@ def test_Board():
     assert not game.HasWon(square.Color.empty)
     assert game.GetSquare(25) == None
     game.SaveGame("savefile.txt")
+    
+def test_Board2():
+    game = board.Board()
+    game.LoadGame("savefile.txt")
+    assert game.GetSquare(18).GetColor() == square.Color.empty
+    game.NextMove()
+    assert game.GetSquare(18).GetColor() == square.Color.white
+    game.NextMove()
+    assert game.GetSquare(0).GetColor() == square.Color.black
+    game.PreviousMove()
+    assert game.GetSquare(0).GetColor() == square.Color.empty
+    assert game.GetSquare(18).GetColor() == square.Color.white
+    game.PreviousMove()
+    assert game.GetSquare(18).GetColor() == square.Color.empty
+    game.NextMove()
+    assert game.GetSquare(18).GetColor() == square.Color.white

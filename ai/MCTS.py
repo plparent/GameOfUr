@@ -3,6 +3,7 @@ import copy as cp
 import random
 import os
 import sys
+import Model
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
 
@@ -12,6 +13,7 @@ import square
 c_puct = 3
 tau = 1
 action_space = 24
+model = Model.generate_model()
 
 class Node:
     def __init__(self, state, parent):
@@ -25,7 +27,7 @@ class Node:
         self.policy = np.zeros(action_space)
 
     def search(self):
-        if is_leaf:
+        if self.is_leaf():
             self.expand()
         else:
             self.select().search()
@@ -44,7 +46,7 @@ class Node:
         new_child = Node(next_state, self)
         self.children[(action, dice)] = new_child
         return new_child
-        
+
     def expand(self):
         if self.state.HasWon(square.Color.white):
             self.backup(1)

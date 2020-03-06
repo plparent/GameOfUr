@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
 import board
 import square
 
-k = 100
+k = 10
 i = 1000
 j = 1000
 c_puct = 3
@@ -169,6 +169,8 @@ class Node:
             while (action, dice) not in self.children:
                 i += 1
                 if i > 100:
+                    print(action, dice)
+                    print(self.children)
                     raise Exception("Failed Play")
                 dice = random.randint(0,1) + random.randint(0,1) + random.randint(0,1) + random.randint(0,1)
             return self.children[(action, dice)].play()
@@ -191,10 +193,11 @@ def train():
         print("Round: ", k_prime)
         game = board.Board()
         
+        print("Search")
         tree = Node(game, None, None, 0)
         for _ in range(i):
             tree.search()
-        
+        print("Play")
         dataset = []
         for _ in range(j):
             dataset += tree.play()
@@ -210,12 +213,11 @@ def train():
         inputs = np.array(inputs)
         policy = np.array(policy)
         value = np.array(value)
-
+        print("Train")
         model.fit(x=inputs, y=[policy, value])
 
-        if k_prime % 10 == 0:
-            print("Saved weights")
-            model.save_weights("savetime-" + k_prime + ".h5")
+        print("Saved weights")
+        model.save_weights("savetime-" + str(k_prime) + ".h5")
 
 if __name__ == "__main__":
     train()

@@ -4,7 +4,7 @@ from tensorflow.keras import Model as Model
 from tensorflow.keras import optimizers as optimizer
 
 def generate_model():
-    main_input = Input(shape=(8,3,3))
+    main_input = Input(shape=(3,8,3))
     x = layer.Conv2D(128,
                      2,
                      kernel_regularizer='l2')(main_input)
@@ -17,16 +17,17 @@ def generate_model():
                          kernel_regularizer='l2')(x)
     head1 = layer.BatchNormalization()(head1)
     head1 = layer.ReLU()(head1)
-    policy_output = layer.Dense(24,
+    head1 = layer.Flatten()(head1)
+    policy_output = layer.Dense(25,
                                 activation='softmax',
                                 kernel_regularizer='l2',
                                 name='policy_output')(head1)
-
     head2 = layer.Conv2D(1,
                          1,
                          kernel_regularizer='l2')(x)
     head2 = layer.BatchNormalization()(head2)
     head2 = layer.ReLU()(head2)
+    head2 = layer.Flatten()(head2)
     head2 = layer.Dense(128,
                         activation='relu',
                         kernel_regularizer='l2')(head2)

@@ -10,11 +10,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../backend'))
 import board
 import square
 
-k = 10
-i = 1000
-j = 1000
-c_puct = 3
-max_tau = 30
+epoch = 1
+iterations = 100
+games = 10
+c_puct = 4
 action_space = 25
 model = Model.generate_model()
 
@@ -60,9 +59,9 @@ def state_convert(state):
         last[3] = encode_bin(state.GetSquare(21).GetCount())
         last[4] = encode_bin(state.dice)
 
-        turn = [0, 0, 0]
+        turn = [0, 0, 1]
         if state.GetTurn() == square.Color.black:
-            turn = [1, 1, 1]
+            turn = [0, 1, 0]
 
         for i in range(5,8):
             last[i] = turn
@@ -80,7 +79,7 @@ def available_moves(state):
             switch = [20,19,18,17,16,8,9,10,11,12,13,14,15,23,22,21]
         else:
             list = state.blacklist
-            switch = [4,3,2,1,0,8,9,10,11,12,13,14,15,5,6,7]
+            switch = [4,3,2,1,0,8,9,10,11,12,13,14,15,7,6,5]
 
         for i in range(16 - state.dice):
             if list[i].GetColor() == state.GetTurn():
@@ -94,11 +93,10 @@ def available_moves(state):
 
 
 class Node:
-    def __init__(self, state, move, parent, depth):
+    def __init__(self, state, move, parent):
         self.state = state
         self.parent = parent
         self.move = move
-        self.depth = depth
         self.children = {}
         self.N = np.zeros(action_space)
         self.W = np.zeros(action_space)
@@ -128,7 +126,7 @@ class Node:
                 print(moves)
                 print(state_convert(self.state))
                 assert(False)
-        new_child = Node(next_state, action, self, self.depth + 1)
+        new_child = Node(next_state, action, self)
         self.children[(action, dice)] = new_child
         return new_child
 
@@ -149,59 +147,85 @@ class Node:
             self.parent.Q[self.move] = self.parent.W[self.move] / self.parent.N[self.move]
             self.parent.backup(value)
 
+class Tree:
+    def __init__(self, node):
+        self.dataset = []
+        self.root_node = node 
+
+    def run(self):
+        done = False
+        depth = 1
+        while not done:
+            done = self.play()
+            depth += 1
+            if depth % 50 == 0:
+                print(depth)
+
+        print("Done: ", depth)
+        return self.dataset
+
     def play(self):
-        arr = []
-        if self.state.HasWon(square.Color.white):
-            self.parse(arr, [1], self.N)
-            return arr
-        elif self.state.HasWon(square.Color.black):
-            self.parse(arr, [-1], self.N)
-            return arr
+        if self.root_node.state.HasWon(square.Color.white):
+            for item in self.dataset:
+                if item[0].GetTurn() == square.Color.white:
+                    item[2] = [1]
+                else:
+                    item[2] = [-1]
+                item[0] = state_convert(item[0])[0]
+            return True
+        elif self.root_node.state.HasWon(square.Color.black):
+            for item in self.dataset:
+                if item[0].GetTurn() == square.Color.black:
+                    item[2] = [1]
+                else:
+                    item[2] = [-1]
+                item[0] = state_convert(item[0])[0]
+            return True
         else:
-            if np.sum(self.N) == 0:
-                P, V = model.predict(state_convert(self.state))
-                self.parse(arr, V[0], P[0])
-                return arr
-            
-            action = np.argmax(self.N / np.sum(self.N))
-            dice = random.randint(0,1) + random.randint(0,1) + random.randint(0,1) + random.randint(0,1)
             i = 0
-            while (action, dice) not in self.children:
+            while i < iterations:
+                self.root_node.search()
                 i += 1
-                if i > 100:
-                    print(action, dice)
-                    print(self.children)
-                    raise Exception("Failed Play")
-                dice = random.randint(0,1) + random.randint(0,1) + random.randint(0,1) + random.randint(0,1)
-            return self.children[(action, dice)].play()
 
-    def parse(self, arr, value, policy = []):
-        if len(policy) == 0:
-            policy = self.N / np.sum(self.N)
-        
-        if self.state.GetTurn() == square.Color.white:
-            arr.append((state_convert(self.state)[0], policy, value))
-        else:
-            arr.append((state_convert(self.state)[0], policy, -1 * value))
+            tmp = self.root_node.N / np.sum(self.root_node.N) * available_moves(self.root_node.state)
+            policy = tmp / np.sum(tmp) 
+            action = np.argmax(policy)
+            dice = self.root_node.state.dice
+                    
+            if (action, dice) not in self.root_node.children:
+                #print(action, dice)
+                #print(policy)
+                #print(self.root_node.children)
+                #print(state_convert(self.root_node.state))
+                #raise Exception("Failed Play")
+                next_state = cp.deepcopy(self.root_node.state)
+                if next_state.CanMove():
+                    assert(next_state.Move(action))
+                child = Node(next_state, action, None)
+            else:
+                child = self.root_node.children[(action, dice)]
+                child.parent = None
 
-        if self.parent != None:
-            self.parent.parse(arr, value)
-    
+            data = [self.root_node.state, policy, None]
+            self.dataset.append(data)
+            self.root_node = child
+            return False
 
 def train():
-    for k_prime in range(k):
-        print("Round: ", k_prime)
+    for k in range(1, epoch + 1):
+        print("Epoch: ", k)
         game = board.Board()
         
-        print("Search")
-        tree = Node(game, None, None, 0)
-        for _ in range(i):
-            tree.search()
         print("Play")
         dataset = []
-        for _ in range(j):
-            dataset += tree.play()
+        for j in range(games): 
+            root_node = Node(game, None, None)
+            tree = Tree(root_node)
+            dataset += tree.run()
+            print("Played:", j + 1)
 
+        print("Data: ", len(dataset))
+        print("Train")
         inputs = []
         policy = []
         value = []
@@ -213,11 +237,11 @@ def train():
         inputs = np.array(inputs)
         policy = np.array(policy)
         value = np.array(value)
-        print("Train")
+        print(np.sum(value))
         model.fit(x=inputs, y=[policy, value])
 
         print("Saved weights")
-        model.save_weights("savetime-" + str(k_prime) + ".h5")
+        model.save_weights("savetime-" + str(k) + ".h5")
 
 if __name__ == "__main__":
     train()

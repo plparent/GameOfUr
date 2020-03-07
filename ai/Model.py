@@ -5,7 +5,7 @@ from tensorflow.keras import optimizers as optimizer
 
 def generate_model():
     main_input = Input(shape=(3,8,3))
-    x = layer.Conv2D(128,
+    x = layer.Conv2D(256,
                      2,
                      kernel_regularizer='l2')(main_input)
     x = layer.BatchNormalization()(x)

@@ -82,7 +82,7 @@ class Board:
 
     def CanMove(self):
         if self.dice == 0:
-            self.actionList.append((str(self.turn), self.dice, 0))
+            self.actionList.append((str(self.turn), self.dice, 100))
             self.NextTurn()
             return False
 
@@ -182,15 +182,15 @@ class Board:
             self.Reset()
             self.ThrowDice(self.actionList[0][1])
 
-        if self.actionPointer >= 0 and self.actionPointer <= len(self.actionList):
+        if self.actionPointer >= 0 and self.actionPointer < len(self.actionList):
             action = self.actionList[self.actionPointer][2]
-            if action != 0 and action != 100:
-                self.Move(action)
+            if action != 100:
+                assert(self.Move(action))
             else:
                 self.NextTurn()
             if self.actionPointer + 1 < len(self.actionList):
                 self.ThrowDice(self.actionList[self.actionPointer + 1][1])
-                self.actionPointer += 1
+            self.actionPointer += 1
 
     def PreviousMove(self):
         pointer = self.actionPointer - 1

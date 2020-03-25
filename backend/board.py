@@ -6,6 +6,8 @@ sys.path.append(os.path.dirname(__file__))
 
 import square
 
+PIECES = 7
+
 class Board:
     def __init__(self):
         self.dice = 0
@@ -24,7 +26,7 @@ class Board:
         square11 = square.NormalSquare(square.Color.empty, False)
         square12 = square.NormalSquare(square.Color.empty, False)
 
-        self.whitelist = [square.StartSquare(square.Color.white, 7),
+        self.whitelist = [square.StartSquare(square.Color.white, PIECES),
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, False),
@@ -39,9 +41,9 @@ class Board:
                           square12,
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, True),
-                          square.EndSquare(7)]
+                          square.EndSquare(PIECES)]
 
-        self.blacklist = [square.StartSquare(square.Color.black, 7),
+        self.blacklist = [square.StartSquare(square.Color.black, PIECES),
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, False),
@@ -56,7 +58,7 @@ class Board:
                           square12,
                           square.NormalSquare(square.Color.empty, False),
                           square.NormalSquare(square.Color.empty, True),
-                          square.EndSquare(7)]
+                          square.EndSquare(PIECES)]
 
 
     def GetPosition(self, position):

@@ -1,6 +1,5 @@
 import numpy as np
 import copy as cp
-import random
 import os
 import sys
 import Model
@@ -14,59 +13,28 @@ epoch = 1
 iterations = 100
 games = 10
 c_puct = 4
+epsilon_dir = 0.25
+alpha_dir = 0.03
 action_space = 25
 model = Model.generate_model()
 
 def state_convert(state):
-        def encode_bin(value):
-            if value == 0:
-                return [0,0,0]
-            elif value == 1:
-                return [0,0,1]
-            elif value == 2:
-                return [0,1,0]
-            elif value == 3:
-                return [0,1,1]
-            elif value == 4:
-                return [1,0,0]
-            elif value == 5:
-                return [1,0,1]
-            elif value == 6:
-                return [1,1,0]
-            elif value == 7:
-                return [1,1,1]
-        
-        white = np.zeros((8,3))
-        for i in range(3):
-            for j in range(8):
-                if state.GetSquare(i * 8 + j).GetColor() == square.Color.white:
-                    white[j][i] = 1
-                else:
-                    white[j][i] = 0
+        data = np.ones(26)
+        for i in range(24):
+            if state.GetSquare(i).GetClass() != square.SquareClass.Normal:
+                data[i] = state.GetSquare.GetCount() + 1
+            elif state.GetSquare(i).GetColor() == square.Color.empty:
+                data[i] = 3
+            elif state.GetSquare(i).GetColor() == square.Color.black:
+                data[i] = 2
+            elif state.GetSquare(i).GetColor() == square.Color.black:
+                data[i] = 1
 
-        black = np.zeros((8,3))
-        for i in range(3):
-            for j in range(8):
-                if state.GetSquare(i * 8 + j).GetColor() == square.Color.black:
-                    black[j][i] = 1
-                else:
-                    black[j][i] = 0
-
-        last = np.zeros((8,3))
-        last[0] = encode_bin(state.GetSquare(4).GetCount())
-        last[1] = encode_bin(state.GetSquare(5).GetCount())
-        last[2] = encode_bin(state.GetSquare(20).GetCount())
-        last[3] = encode_bin(state.GetSquare(21).GetCount())
-        last[4] = encode_bin(state.dice)
-
-        turn = [0, 0, 1]
+        data[24] = state.dice
         if state.GetTurn() == square.Color.black:
-            turn = [0, 1, 0]
+            data[25] = 2
 
-        for i in range(5,8):
-            last[i] = turn
-
-        return np.array([white, black, last]).reshape((-1,3,8,3))
+        return np.array(data).reshape((-1,26))
 
 def available_moves(state):
         ret = np.zeros(25)
@@ -114,7 +82,8 @@ class Node:
         U = c_puct * self.P * np.sqrt(np.sum(self.N)) / (1 + self.N)
         moves = available_moves(self.state)
         tmp = ((self.Q + U) + moves) * moves
-        action = np.argmax(tmp / np.sum(tmp))
+        actions = np.arange(action_space)
+        action = np.random.choice(a=actions, p=(tmp / np.sum(tmp)))
         dice = self.state.dice
         if (action, dice) in self.children:
             return self.children[(action, dice)]
@@ -148,8 +117,10 @@ class Node:
             self.parent.backup(value)
 
 class Tree:
-    def __init__(self, node):
+    def __init__(self, node, tau):
         self.dataset = []
+        self.tau = tau
+        self.tau_step = 0
         self.root_node = node 
 
     def run(self):
@@ -182,14 +153,20 @@ class Tree:
                 item[0] = state_convert(item[0])[0]
             return True
         else:
+            self.root_node.P = (1 - epsilon_dir) * self.root_node.P + epsilon_dir * np.random.dirichlet([alpha_dir] * action_space)
             i = 0
             while i < iterations:
                 self.root_node.search()
                 i += 1
 
             tmp = self.root_node.N / np.sum(self.root_node.N) * available_moves(self.root_node.state)
-            policy = tmp / np.sum(tmp) 
-            action = np.argmax(policy)
+            policy = tmp / np.sum(tmp)
+            if (self.tau_step < self.tau):
+                actions = np.arange(action_space)
+                action = np.random.choice(a=actions, p=policy)
+                self.tau_step += 1
+            else:
+                action = np.argmax(policy)
             dice = self.root_node.state.dice
                     
             if (action, dice) not in self.root_node.children:
@@ -225,6 +202,7 @@ def train():
             print("Played:", j + 1)
 
         print("Data: ", len(dataset))
+        np.save("data.npy", np.array(dataset))
         print("Train")
         inputs = []
         policy = []
@@ -237,11 +215,33 @@ def train():
         inputs = np.array(inputs)
         policy = np.array(policy)
         value = np.array(value)
-        print(np.sum(value))
         model.fit(x=inputs, y=[policy, value])
 
         print("Saved weights")
         model.save_weights("savetime-" + str(k) + ".h5")
 
+def fit():
+    dataset = np.load("data.npy")
+    inputs = []
+    policy = []
+    value = []
+    i = 0
+    for d in dataset:
+        inputs.append(d[0])
+        policy.append(d[1])
+        value.append(d[2])
+        if d[2][0] == 1:
+            i += 1
+
+    print(i, " for white")
+    inputs = np.array(inputs)
+    policy = np.array(policy)
+    value = np.array(value)
+    model.fit(x=inputs, y=[policy, value])
+
+    print("Saved weights")
+    model.save_weights("savetime-fit.h5")
+
 if __name__ == "__main__":
     train()
+    #fit()

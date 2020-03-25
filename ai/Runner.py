@@ -11,15 +11,13 @@ import square
 
 model1 = Model.generate_model()
 model2 = Model.generate_model()
-model1.load_weights("savetime-1.h5")
-model2.load_weights("savetime-1.h5")
+model1.load_weights("savetime-fit.h5")
+model2.load_weights("savetime-fit.h5")
 
 game = board.Board()
 i = 0
-j = 0
 
-for k in range(100):
-    print(k)
+for k in range(1000):
     while True:
         game.ThrowDice(-1)
         moves = MCTS.available_moves(game)
@@ -34,11 +32,9 @@ for k in range(100):
             i += 1
             break;
         if game.HasWon(square.Color.black):
-            j += 1
             break;
  
-print(i, "/100 for white")
-print(j, "/100 for black")
+print(i/1000, " for white")
 #game.SaveGame("test.txt")
 
 

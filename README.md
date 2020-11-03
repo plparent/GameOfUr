@@ -1,4 +1,4 @@
-# Game of Ur AI experiment
+# Game of Ur AI Experiment
 
 The first part of this project is about recreating the Game of Ur using the Irving Finkel rule set. https://www.mastersofgames.com/rules/royal-ur-rules.htm
 
